@@ -9,14 +9,28 @@ namespace WebApi.MinimalApi.Controllers;
 public class UsersController : Controller
 {
     // Чтобы ASP.NET положил что-то в userRepository требуется конфигурация
+    private IUserRepository _userRepository; 
+        
     public UsersController(IUserRepository userRepository)
     {
+        _userRepository = userRepository;
     }
 
     [HttpGet("{userId}")]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
-        throw new NotImplementedException();
+        var user = _userRepository.FindById(userId);
+        if (user is null)
+            return NotFound();
+        var userDto = new UserDto
+        {
+            Id = user.Id,
+            Login = user.Login,
+            FullName = $"{user.LastName} {user.FirstName}",
+            CurrentGameId = user.CurrentGameId,
+            GamesPlayed = user.GamesPlayed
+        };
+        return Ok(userDto);
     }
 
     [HttpPost]
