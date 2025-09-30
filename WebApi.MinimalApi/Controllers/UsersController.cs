@@ -5,9 +5,10 @@ using WebApi.MinimalApi.Models;
 
 namespace WebApi.MinimalApi.Controllers;
 
-[Route("api/[controller]")]
 [ApiController]
+[Route("api/[controller]")]
 [Produces("application/json", "application/xml")]
+[Consumes("application/json", "application/xml")]
 public class UsersController : Controller
 {
     // Чтобы ASP.NET положил что-то в userRepository требуется конфигурация
@@ -20,7 +21,7 @@ public class UsersController : Controller
         _mapper = mapper;
     }
 
-    [HttpGet("{userId}")]
+    [HttpGet("{userId}", Name = nameof(GetUserById))]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
         var user = _userRepository.FindById(userId);
@@ -30,9 +31,24 @@ public class UsersController : Controller
         return Ok(userDto);
     }
 
+    [Consumes("application/json", "application/xml")]
     [HttpPost]
-    public IActionResult CreateUser([FromBody] object user)
+    public IActionResult CreateUser([FromBody] UserPostRequest? userRequest)
     {
-        throw new NotImplementedException();
+        if (userRequest is null)
+            return BadRequest();
+        if (!ModelState.IsValid)
+        {
+            Console.WriteLine(ModelState.ErrorCount);
+            return UnprocessableEntity(ModelState);
+        }
+        if (userRequest.Login.Any(c => !char.IsLetterOrDigit(c)))
+        {
+            ModelState.AddModelError(nameof(UserPostRequest.Login), "Login must consist only of letters and digits");
+            return UnprocessableEntity(ModelState);
+        }
+        var user = _mapper.Map<UserEntity>(userRequest);
+        _userRepository.Insert(user);
+        return CreatedAtRoute(nameof(GetUserById), new { userId = user.Id }, user.Id);
     }
 }

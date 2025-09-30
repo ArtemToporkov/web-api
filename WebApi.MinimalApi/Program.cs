@@ -1,11 +1,13 @@
 using System.Reflection;
 using Microsoft.AspNetCore.Mvc.Formatters;
+using Newtonsoft.Json.Serialization;
 using WebApi.MinimalApi.Domain;
 using WebApi.MinimalApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
-builder.Services.AddControllers(options =>
+builder.Services
+    .AddControllers(options =>
     {
         options.OutputFormatters.Add(new XmlDataContractSerializerOutputFormatter());
         options.ReturnHttpNotAcceptable = true;
@@ -14,6 +16,10 @@ builder.Services.AddControllers(options =>
     .ConfigureApiBehaviorOptions(options => {
         options.SuppressModelStateInvalidFilter = true;
         options.SuppressMapClientErrors = true;
+    })
+    .AddNewtonsoftJson(options =>
+    {
+        options.SerializerSettings.ContractResolver = new CamelCasePropertyNamesContractResolver();
     });
 builder.Services.AddSingleton<IUserRepository, InMemoryUserRepository>();
 builder.Services.AddAutoMapper(cfg =>
@@ -22,6 +28,7 @@ builder.Services.AddAutoMapper(cfg =>
         .ForMember(u => u.FullName, 
             opt => opt.MapFrom(u => $"{u.LastName} {u.FirstName}"));
     cfg.CreateMap<UserDto, UserEntity>();
+    cfg.CreateMap<UserPostRequest, UserEntity>().ReverseMap();
 }, Array.Empty<Assembly>());
 
 var app = builder.Build();
