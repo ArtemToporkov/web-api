@@ -22,7 +22,7 @@ public class UsersController : Controller
         _mapper = mapper;
     }
 
-    [HttpGet("{userId}", Name = nameof(GetUserById))]
+    [HttpGet("{userId:guid}", Name = nameof(GetUserById))]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
         var user = _userRepository.FindById(userId);
@@ -50,7 +50,7 @@ public class UsersController : Controller
     }
     
     [HttpPut("{userId}")]
-    public IActionResult UpsertUser(string userId, [FromBody] UpsertUserRequest? userRequest)
+    public IActionResult UpsertUser([FromRoute] string userId, [FromBody] UpsertUserRequest? userRequest)
     {
         if (userRequest is null || !Guid.TryParse(userId, out var guidUserId))
             return BadRequest();
@@ -63,14 +63,12 @@ public class UsersController : Controller
             : NoContent();
     }
 
-    [HttpPatch("{userId}")]
-    public IActionResult PartiallyUpdateUser([FromRoute] string userId, [FromBody] JsonPatchDocument<PartiallyUpdateUserRequest>? request)
+    [HttpPatch("{userId:guid}")]
+    public IActionResult PartiallyUpdateUser([FromRoute] Guid userId, [FromBody] JsonPatchDocument<PartiallyUpdateUserRequest>? request)
     {
         if (request is null)
             return BadRequest();
-        if (!Guid.TryParse(userId, out var userGuid))
-            return NotFound();
-        var user = _userRepository.FindById(userGuid);
+        var user = _userRepository.FindById(userId);
         if (user is null)
             return NotFound();
         var partiallyUpdateRequest = _mapper.Map<PartiallyUpdateUserRequest>(user);
