@@ -1,4 +1,5 @@
 ﻿using AutoMapper;
+using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using WebApi.MinimalApi.Domain;
 using WebApi.MinimalApi.Models;
@@ -32,7 +33,7 @@ public class UsersController : Controller
     }
 
     [HttpPost]
-    public IActionResult CreateUser([FromBody] UserPostRequest? userRequest)
+    public IActionResult CreateUser([FromBody] CreateUserRequest? userRequest)
     {
         if (userRequest is null)
             return BadRequest();
@@ -40,7 +41,7 @@ public class UsersController : Controller
             return UnprocessableEntity(ModelState);
         if (userRequest.Login.Any(c => !char.IsLetterOrDigit(c)))
         {
-            ModelState.AddModelError(nameof(UserPostRequest.Login), "Login must consist only of letters and digits");
+            ModelState.AddModelError(nameof(CreateUserRequest.Login), "Login must consist only of letters and digits");
             return UnprocessableEntity(ModelState);
         }
         var user = _mapper.Map<UserEntity>(userRequest);
@@ -49,7 +50,7 @@ public class UsersController : Controller
     }
     
     [HttpPut("{userId}")]
-    public IActionResult UpsertUser(string userId, [FromBody] UserPutRequest? userRequest)
+    public IActionResult UpsertUser(string userId, [FromBody] UpsertUserRequest? userRequest)
     {
         if (userRequest is null || !Guid.TryParse(userId, out var guidUserId))
             return BadRequest();
@@ -60,5 +61,25 @@ public class UsersController : Controller
         return isInserted 
             ? CreatedAtRoute(nameof(GetUserById), new {userId = user.Id}, user.Id) 
             : NoContent();
+    }
+
+    [HttpPatch("{userId}")]
+    public IActionResult PartiallyUpdateUser([FromRoute] string userId, [FromBody] JsonPatchDocument<PartiallyUpdateUserRequest>? request)
+    {
+        if (request is null)
+            return BadRequest();
+        if (!Guid.TryParse(userId, out var userGuid))
+            return NotFound();
+        var user = _userRepository.FindById(userGuid);
+        if (user is null)
+            return NotFound();
+        var partiallyUpdateRequest = _mapper.Map<PartiallyUpdateUserRequest>(user);
+        request.ApplyTo(partiallyUpdateRequest);
+        TryValidateModel(partiallyUpdateRequest);
+        if (!ModelState.IsValid)
+            return UnprocessableEntity(ModelState);
+        var updatedUser = _mapper.Map(partiallyUpdateRequest, user);
+        _userRepository.Update(updatedUser);
+        return NoContent();
     }
 }

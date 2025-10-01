@@ -2,7 +2,7 @@
 
 namespace WebApi.MinimalApi.Models;
 
-public record UserPutRequest
+public class PartiallyUpdateUserRequest
 {
     [Required]
     [RegularExpression("^[0-9\\p{L}]*$", ErrorMessage = "Login should contain only letters or digits")]
