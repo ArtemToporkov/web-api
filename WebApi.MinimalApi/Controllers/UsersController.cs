@@ -80,4 +80,14 @@ public class UsersController : Controller
         _userRepository.Update(updatedUser);
         return NoContent();
     }
+
+    [HttpDelete("{userId:guid}")]
+    public IActionResult DeleteUser([FromRoute] Guid userId)
+    {
+        var user = _userRepository.FindById(userId);
+        if (user is null)
+            return NotFound();
+        _userRepository.Delete(userId);
+        return NoContent();
+    }
 }
