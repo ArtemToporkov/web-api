@@ -27,11 +27,8 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.CreateMap<UserEntity, UserDto>()
         .ForMember(u => u.FullName, 
             opt => opt.MapFrom(u => $"{u.LastName} {u.FirstName}"));
-    cfg.CreateMap<UserDto, UserEntity>();
-    cfg.CreateMap<CreateUserRequest, UserEntity>().ReverseMap();
-    cfg.CreateMap<UpsertUserRequest, UserEntity>()
-        .ForMember(dest => dest.Id, 
-            opt => opt.Ignore());
+    cfg.CreateMap<CreateUserRequest, UserEntity>();
+    cfg.CreateMap<UpsertUserRequest, UserEntity>();
     cfg.CreateMap<UserEntity, PartiallyUpdateUserRequest>().ReverseMap();
 }, Array.Empty<Assembly>());
 
