@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
+using Newtonsoft.Json;
 using WebApi.MinimalApi.Domain;
 using WebApi.MinimalApi.Models;
 
@@ -15,11 +16,13 @@ public class UsersController : Controller
     // Чтобы ASP.NET положил что-то в userRepository требуется конфигурация
     private IUserRepository _userRepository;
     private IMapper _mapper;
+    private LinkGenerator _linkGenerator;
         
-    public UsersController(IUserRepository userRepository, IMapper mapper)
+    public UsersController(IUserRepository userRepository, IMapper mapper, LinkGenerator linkGenerator)
     {
         _userRepository = userRepository;
         _mapper = mapper;
+        _linkGenerator = linkGenerator;
     }
 
     [HttpGet("{userId:guid}", Name = nameof(GetUserById))]
@@ -95,5 +98,32 @@ public class UsersController : Controller
             return NotFound();
         _userRepository.Delete(userId);
         return NoContent();
+    }
+
+    [HttpGet(Name = nameof(GetAllUsers))]
+    public IActionResult GetAllUsers([FromQuery] GetUsersRequest request)
+    {
+        var pageNumber = Math.Max(request.PageNumber, 1);
+        var pageSize = Math.Clamp(request.PageSize, 1, 20);
+        var usersPage = _userRepository.GetPage(pageNumber, pageSize);
+        var nextPageLink = usersPage.HasNext
+            ? _linkGenerator.GetUriByRouteValues(
+                HttpContext, nameof(GetAllUsers), new GetUsersRequest { PageNumber = pageNumber + 1, PageSize = pageSize })
+            : null;
+        var previousPageLink = usersPage.HasPrevious
+            ? _linkGenerator.GetUriByRouteValues(
+                HttpContext, nameof(GetAllUsers), new GetUsersRequest { PageNumber = pageNumber - 1, PageSize = pageSize })
+            : null;
+        var paginationHeader = new
+        {
+            previousPageLink = previousPageLink,
+            nextPageLink = nextPageLink,
+            totalCount = usersPage.TotalCount,
+            pageSize = usersPage.PageSize,
+            currentPage = usersPage.CurrentPage,
+            totalPages = usersPage.TotalPages,
+        };
+        Response.Headers.Append("X-Pagination", JsonConvert.SerializeObject(paginationHeader));
+        return Ok(_mapper.Map<IEnumerable<UserDto>>(usersPage));
     }
 }
