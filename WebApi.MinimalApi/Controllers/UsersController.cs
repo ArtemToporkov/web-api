@@ -23,11 +23,17 @@ public class UsersController : Controller
     }
 
     [HttpGet("{userId:guid}", Name = nameof(GetUserById))]
+    [HttpHead("{userId:guid}")]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
         var user = _userRepository.FindById(userId);
         if (user is null)
             return NotFound();
+        if (Request.Method == HttpMethods.Head)
+        {
+            Response.ContentType = "application/json; charset=utf-8";
+            return Ok();
+        }
         var userDto = _mapper.Map<UserDto>(user);
         return Ok(userDto);
     }
