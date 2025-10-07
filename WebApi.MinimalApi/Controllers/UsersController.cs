@@ -50,13 +50,11 @@ public class UsersController : Controller
     {
         if (userRequest is null)
             return BadRequest();
+        if (string.IsNullOrEmpty(userRequest.Login) || userRequest.Login.Any(c => !char.IsLetterOrDigit(c)))
+            ModelState.AddModelError(nameof(CreateUserRequest.Login), 
+                "Login must consist only of letters and digits and should not be empty");
         if (!ModelState.IsValid)
             return UnprocessableEntity(ModelState);
-        if (userRequest.Login.Any(c => !char.IsLetterOrDigit(c)))
-        {
-            ModelState.AddModelError(nameof(CreateUserRequest.Login), "Login must consist only of letters and digits");
-            return UnprocessableEntity(ModelState);
-        }
         var user = mapper.Map<UserEntity>(userRequest);
         var insertedUser = userRepository.Insert(user);
         return CreatedAtRoute(nameof(GetUserById), new { userId = insertedUser.Id }, insertedUser.Id);
