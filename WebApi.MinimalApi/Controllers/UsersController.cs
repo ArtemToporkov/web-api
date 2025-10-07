@@ -2,6 +2,7 @@
 using Microsoft.AspNetCore.JsonPatch;
 using Microsoft.AspNetCore.Mvc;
 using Newtonsoft.Json;
+using Swashbuckle.AspNetCore.Annotations;
 using WebApi.MinimalApi.Domain;
 using WebApi.MinimalApi.Models;
 
@@ -26,6 +27,8 @@ public class UsersController : Controller
 
     [HttpGet("{userId:guid}", Name = nameof(GetUserById))]
     [HttpHead("{userId:guid}")]
+    [SwaggerResponse(StatusCodes.Status200OK, "OK", typeof(UserDto))]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
     public ActionResult<UserDto> GetUserById([FromRoute] Guid userId)
     {
         var user = userRepository.FindById(userId);
@@ -41,6 +44,8 @@ public class UsersController : Controller
     }
 
     [HttpPost]
+    [SwaggerResponse(StatusCodes.Status201Created, "User successfully created; returns its ID", typeof(Guid))]
+    [SwaggerResponse(StatusCodes.Status422UnprocessableEntity, "Model validation failed")]
     public IActionResult CreateUser([FromBody] CreateUserRequest? userRequest)
     {
         if (userRequest is null)
@@ -58,6 +63,11 @@ public class UsersController : Controller
     }
     
     [HttpPut("{userId}")]
+    [SwaggerResponse(StatusCodes.Status400BadRequest, $"Invalid {nameof(userId)} or request body")]
+    [SwaggerResponse(StatusCodes.Status422UnprocessableEntity, "Model validation failed")]
+    [SwaggerResponse(StatusCodes.Status201Created, 
+        "User not found; a new user was created with request data; returns its ID", typeof(Guid))]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "User successfully updated")]
     public IActionResult UpsertUser([FromRoute] string userId, [FromBody] UpsertUserRequest? userRequest)
     {
         if (userRequest is null || !Guid.TryParse(userId, out var guidUserId))
@@ -72,6 +82,9 @@ public class UsersController : Controller
     }
 
     [HttpPatch("{userId:guid}")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
+    [SwaggerResponse(StatusCodes.Status422UnprocessableEntity, "Model validation failed")]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "User successfully updated")]
     public IActionResult PartiallyUpdateUser([FromRoute] Guid userId, [FromBody] JsonPatchDocument<PartiallyUpdateUserRequest>? request)
     {
         if (request is null)
@@ -90,6 +103,8 @@ public class UsersController : Controller
     }
 
     [HttpDelete("{userId:guid}")]
+    [SwaggerResponse(StatusCodes.Status404NotFound, "User not found")]
+    [SwaggerResponse(StatusCodes.Status204NoContent, "User successfully deleted")]
     public IActionResult DeleteUser([FromRoute] Guid userId)
     {
         var user = userRepository.FindById(userId);
@@ -100,6 +115,8 @@ public class UsersController : Controller
     }
 
     [HttpGet(Name = nameof(GetAllUsers))]
+    [SwaggerResponse(StatusCodes.Status200OK, 
+        "Returns a paginated list of users. Pagination metadata is included in the X-Pagination header")]
     public IActionResult GetAllUsers([FromQuery] GetUsersRequest request)
     {
         var pageNumber = Math.Max(request.PageNumber, 1);
@@ -127,6 +144,7 @@ public class UsersController : Controller
     }
 
     [HttpOptions]
+    [SwaggerResponse(StatusCodes.Status200OK, "Returns allowed HTTP methods in the Allow header")]
     public IActionResult GetOptions()
     {
         Response.Headers.Append("Allow", "GET, POST, OPTIONS");
