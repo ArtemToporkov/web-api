@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc.Formatters;
 using Newtonsoft.Json.Serialization;
 using WebApi.MinimalApi.Domain;
 using WebApi.MinimalApi.Models;
+using WebApi.MinimalApi.Samples;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls("http://localhost:5000");
@@ -31,9 +32,11 @@ builder.Services.AddAutoMapper(cfg =>
     cfg.CreateMap<UpsertUserRequest, UserEntity>();
     cfg.CreateMap<UserEntity, PartiallyUpdateUserRequest>().ReverseMap();
 }, Array.Empty<Assembly>());
+builder.Services.AddSwaggerGeneration();
 
 var app = builder.Build();
 
+app.UseSwaggerWithUI();
 app.MapControllers();
 
 app.Run();
